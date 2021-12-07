@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane prefHeight="571.0" prefWidth="900.0" style="-fx-background-color: skyblue;" stylesheets="@NetTranfer.css" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="GaiaNet.Windows.NetTransferSingleContr">
+   <children>
+
+      <SplitPane dividerPositions="0.14517218095881163, 0.8220796758946658" layoutY="-12.0" orientation="VERTICAL" prefHeight="594.0" prefWidth="900.0">
+         <items>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="60.0" prefWidth="898.0">
+               <children>
+            <Button id="transfer" fx:id="transfer" layoutX="457.0" layoutY="42.0" mnemonicParsing="false" onAction="#transferClick" prefHeight="44.0" prefWidth="86.0" text="下载" textFill="#c51d1d">
+               <font>
+                  <Font name="System Bold" size="20.0" />
+               </font>
+            </Button>
+                  <Button id="transfer" fx:id="transfer1" layoutX="355.0" layoutY="42.0" mnemonicParsing="false" onAction="#transferClick" prefHeight="44.0" prefWidth="86.0" text="上传" textFill="#c51d1d">
+                     <font>
+                        <Font name="System Bold" size="20.0" />
+                     </font>
+                  </Button>
+               </children></AnchorPane>
+            <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="351.0" prefWidth="898.0">
+         <SplitPane dividerPositions="0.5" prefHeight="535.0" prefWidth="900.0">
+           <items>
+             <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0" style="-fx-background-color: skyblue;">
+                  <children>
+                     <Label layoutX="14.0" layoutY="10.0" prefHeight="26.0" prefWidth="78.0" text="本地：">
+                        <font>
+                           <Font size="16.0" />
+                        </font></Label>
+                     <TextField fx:id="ip" layoutX="56.0" layoutY="50.0" prefHeight="26.0" prefWidth="278.0" />
+                     <Label layoutX="13.0" layoutY="52.0" text="远程：" />
+                     <TextField fx:id="port" layoutX="354.0" layoutY="50.0" prefHeight="26.0" prefWidth="86.0" />
+                     <Label contentDisplay="CENTER" layoutX="343.0" layoutY="47.0" prefHeight="20.0" prefWidth="11.0" text=":">
+                        <font>
+                           <Font size="19.0" />
+                        </font>
+                     </Label>
+                     <Button fx:id="setting" layoutX="358.0" layoutY="90.0" mnemonicParsing="false" onAction="#settingClick" prefHeight="57.0" prefWidth="78.0" text="设置">
+                        <font>
+                           <Font name="Segoe UI" size="23.0" />
+                        </font>
+                     </Button>
+                           <TableView layoutX="13.0" layoutY="166.0" prefHeight="201.0" prefWidth="420.0">
+                             <columns>
+                               <TableColumn prefWidth="75.0" text="文件名" />
+                               <TableColumn prefWidth="75.0" text="大小" />
+                             </columns>
+                           </TableView>
+                  </children></AnchorPane>
+             <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0" style="-fx-background-color: skyblue;">
+                  <children>
+                     <Label layoutX="14.0" layoutY="10.0" prefHeight="26.0" prefWidth="78.0" text="远程：">
+                        <font>
+                           <Font name="Tw Cen MT Condensed Bold" size="16.0" />
+                        </font></Label>
+                     <Label layoutX="14.0" layoutY="48.0" text="监听：" />
+                     <TextField fx:id="portServer" alignment="CENTER_RIGHT" layoutX="53.0" layoutY="43.0" prefHeight="26.0" prefWidth="86.0" text="9190" />
+                     <Button layoutX="287.0" layoutY="44.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="109.0" text="开始监听" />
+                           <TreeTableView layoutX="60.0" layoutY="129.0" prefHeight="228.0" prefWidth="236.0">
+                             <columns>
+                               <TreeTableColumn prefWidth="75.0" text="C1" />
+                               <TreeTableColumn prefWidth="75.0" text="C2" />
+                             </columns>
+                           </TreeTableView>
+                  </children>
+                  <effect>
+                     <DropShadow>
+                        <color>
+                           <Color red="0.9078947305679321" green="0.34130117297172546" blue="0.34130117297172546" />
+                        </color>
+                     </DropShadow>
+                  </effect></AnchorPane>
+           </items>
+         </SplitPane>
+            </AnchorPane>
+
+         <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="398.0" prefWidth="898.0">
+               <children>
+            <ProgressBar layoutX="62.0" layoutY="20.0" prefHeight="18.0" prefWidth="426.0" progress="0.0" />
+               </children></AnchorPane>
+            
+        </items>
+      </SplitPane>
+   </children>
+</AnchorPane>

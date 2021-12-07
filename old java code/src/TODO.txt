@@ -1,0 +1,4 @@
+1. 接受 0,1,2 列表
+2. CommandHeader
+3. 末尾检查文件md5
+4. 断点续传（FileRcvInfo）
