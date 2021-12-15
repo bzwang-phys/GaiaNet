@@ -11,7 +11,7 @@ namespace GaiaNet.BasicNet
 {
     class DaemonServer
     {
-        private int _portServer = 12000;
+        private int _portServer = 9091;
         private MultiThreadServer server = null;
         private UdpServer udpServer = null;
         private Net net = null;
