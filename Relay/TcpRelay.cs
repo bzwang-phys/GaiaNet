@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
-using System.Net.Http.Headers;
+using System.Threading;
 using System.Net;
 
 namespace GaiaNet.Relay
@@ -11,9 +11,9 @@ namespace GaiaNet.Relay
     {
         private Socket inSocket;
         private Socket outSocket;
-        private byte[] inByts = new byte[2048];
-        private byte[] outByts = new byte[2048];
-        private int inBytsNum, outBytsNum, closeSockNum=0;
+        private byte[] upByts = new byte[2048];
+        private byte[] downByts = new byte[2048];
+        private int upBytsNum, downBytsNum, closeSockNum=0;
         private Boolean upStreamOpen = true;
         private Boolean downStreamOpen = true;
 
@@ -22,17 +22,17 @@ namespace GaiaNet.Relay
         }
 
         private byte[] InByts(){
-            return inByts.Take(inBytsNum).ToArray();
+            return upByts.Take(upBytsNum).ToArray();
         }
         private byte[] OutByts(){
-            return outByts.Take(outBytsNum).ToArray();
+            return downByts.Take(downBytsNum).ToArray();
         }
 
         public void Relay(){
             try {
                 Console.WriteLine("Receive Relay request from: " + inSocket.RemoteEndPoint);
                 IPEndPoint iPEndPoint = GetIPFromHeader();
-                if (iPEndPoint == null) { Console.WriteLine("Failed to get ip."); return; }
+                if (iPEndPoint == null) { Console.WriteLine("Failed to get ip.");inSocket.Close();return; }
                 outSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 AsyncRelay(iPEndPoint);
 
@@ -41,20 +41,25 @@ namespace GaiaNet.Relay
             }
         }
         
+        // Based on event, Every TcpRelay has inSocket and outSocket to upstream / downstream
         private void AsyncRelay(IPEndPoint iPEndPoint){
             outSocket.BeginConnect(iPEndPoint, asyncRes=>{
                     outSocket.EndConnect(asyncRes);
-                    outSocket.Send(InByts());
+                    if (iPEndPoint.Port == 443){  //https
+                        inSocket.Send(Encoding.ASCII.GetBytes("HTTP/1.1 200 Connection Established\r\n\r\n"));
+                    } else{ outSocket.Send(InByts()); } // http and others.
+
                     UpStream();
                     DownStream();
                 }, null);
         }
 
+        // inSocket --> UpStream --> outSocket
         private void UpStream(){
             try{
-                inSocket.BeginReceive(inByts, 0, inByts.Length, SocketFlags.None, asyncRes=>{
-                    inBytsNum = inSocket.EndReceive(asyncRes);
-                    if (inBytsNum == 0 || !upStreamOpen || !downStreamOpen){ // Close the Relay.
+                inSocket.BeginReceive(upByts, 0, upByts.Length, SocketFlags.None, asyncRes=>{
+                    upBytsNum = inSocket.EndReceive(asyncRes);
+                    if (upBytsNum == 0 || !upStreamOpen || !downStreamOpen){ // Close the Relay.
                         StopRelay();
                         CloseSocket();
                         return;
@@ -71,11 +76,12 @@ namespace GaiaNet.Relay
         }
 
 
+        // outSocket --> DownStream --> inSocket
         private void DownStream(){
             try{
-                outSocket.BeginReceive(outByts, 0, outByts.Length, SocketFlags.None, asyncRes=>{
-                    outBytsNum = outSocket.EndReceive(asyncRes);
-                    if (outBytsNum == 0 || !upStreamOpen || !downStreamOpen){  // Close the Relay.
+                outSocket.BeginReceive(downByts, 0, downByts.Length, SocketFlags.None, asyncRes=>{
+                    downBytsNum = outSocket.EndReceive(asyncRes);
+                    if (downBytsNum == 0 || !upStreamOpen || !downStreamOpen){  // Close the Relay.
                         StopRelay();
                         CloseSocket();
                         return;
@@ -105,8 +111,8 @@ namespace GaiaNet.Relay
 
         private IPEndPoint GetIPFromHeader(){
             try {
-                inBytsNum = inSocket.Receive(inByts);
-                string headers = Encoding.UTF8.GetString(inByts.Take(inBytsNum).ToArray());  //Maybe not the UTF8 code.
+                upBytsNum = inSocket.Receive(upByts);
+                string headers = Encoding.UTF8.GetString(upByts.Take(upBytsNum).ToArray());  //Maybe not the UTF8 code.
 
                 // find the host name from the headers.
                 char[] delimiterChars = {' ', '\n'};

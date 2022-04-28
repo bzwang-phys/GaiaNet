@@ -7,6 +7,7 @@ using System.Threading;
 using GaiaNet.Command;
 using System.Text;
 using GaiaNet.Relay;
+using GaiaNet.HolePunching;
 
 namespace GaiaNet.BasicNet
 {
@@ -61,6 +62,9 @@ namespace GaiaNet.BasicNet
                     }  else if (type == NetType.Relay){
                         TcpRelay tcpRelay = new TcpRelay(newClient);
                         new Thread( ()=>tcpRelay.Relay() ).Start();
+                    } else if (type == NetType.HolePunch) {
+                        TcpPunchServer tcpPunchServer = new TcpPunchServer();
+                        new Thread( ()=>tcpPunchServer.handle(newClient) ).Start();
                     } else {
                         Console.WriteLine("MultiThreadServer: Unknown Socket.");
                     }
