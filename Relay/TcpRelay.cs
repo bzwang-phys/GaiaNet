@@ -59,6 +59,7 @@ namespace GaiaNet.Relay
             try{
                 inSocket.BeginReceive(upByts, 0, upByts.Length, SocketFlags.None, asyncRes=>{
                     upBytsNum = inSocket.EndReceive(asyncRes);
+                    Console.WriteLine("UpStream, Receive data: " + downBytsNum);
                     if (upBytsNum == 0 || !upStreamOpen || !downStreamOpen){ // Close the Relay.
                         StopRelay();
                         CloseSocket();
@@ -81,6 +82,7 @@ namespace GaiaNet.Relay
             try{
                 outSocket.BeginReceive(downByts, 0, downByts.Length, SocketFlags.None, asyncRes=>{
                     downBytsNum = outSocket.EndReceive(asyncRes);
+                    Console.WriteLine("DownStream, Receive data: " + downBytsNum);
                     if (downBytsNum == 0 || !upStreamOpen || !downStreamOpen){  // Close the Relay.
                         StopRelay();
                         CloseSocket();

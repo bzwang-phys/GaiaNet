@@ -8,6 +8,7 @@ using GaiaNet.Command;
 using System.Text;
 using GaiaNet.Relay;
 using GaiaNet.HolePunching;
+using System.Collections.Generic;
 
 namespace GaiaNet.BasicNet
 {
@@ -20,6 +21,7 @@ namespace GaiaNet.BasicNet
         public String BasePath { get; set; }
         private TcpListener _server;
         private Boolean _isRunning;
+        private Dictionary<string, Socket> reverseProxys = new Dictionary<string, Socket>();
 
         public MultiThreadServer(int port):this(port, null) {
             _port = port;
@@ -45,12 +47,12 @@ namespace GaiaNet.BasicNet
                     Socket newClient = _server.AcceptSocket();
                     Console.WriteLine("Connection from: " + newClient.RemoteEndPoint);
                     
-                    NetType type = NetType.Relay;
+                    // NetType type = NetType.Relay;
+                    NetType type = new NetHeader().ReadHeader(newClient);
                     Console.WriteLine("GaiaType from this connection: " + type.ToString());
 
                     if (type == NetType.Command){
-                        CommandHandler cmdHandler = new CommandHandler();
-                        new Thread(()=> cmdHandler.handle(newClient)).Start();
+                        new Thread(()=> new CommandHandler().handle(newClient)).Start();
                     } else if (type == NetType.File){  // file transfer
                         //fileheader fileheader = new fileheader();
                         //fileheader.receive(dis);
@@ -59,12 +61,12 @@ namespace GaiaNet.BasicNet
                         //if (fileHeader.type == 1)  new Thread(()-> threadRcvFile(socket,dis,fileHeader)).start();
                     } else if (type == NetType.GaiaNet){
                         //new Thread(()-> this.gaiaNet.net.handle(socket, logServer)).start();
-                    }  else if (type == NetType.Relay){
-                        TcpRelay tcpRelay = new TcpRelay(newClient);
-                        new Thread( ()=>tcpRelay.Relay() ).Start();
+                    } else if (type == NetType.Relay){
+                        new Thread( ()=>new TcpRelay(newClient).Relay() ).Start();
                     } else if (type == NetType.HolePunch) {
-                        TcpPunchServer tcpPunchServer = new TcpPunchServer();
-                        new Thread( ()=>tcpPunchServer.handle(newClient) ).Start();
+                        new Thread( ()=>new TcpPunchServer().handle(newClient) ).Start();
+                    } else if (type == NetType.ReverseProxy) {
+                        new Thread( ()=>new ReverseProxy(reverseProxys).handle(newClient) ).Start();
                     } else {
                         Console.WriteLine("MultiThreadServer: Unknown Socket.");
                     }
