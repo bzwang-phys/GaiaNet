@@ -7,6 +7,7 @@ using System.Threading;
 using GaiaNet.Command;
 using System.Text;
 using GaiaNet.Relay;
+using GaiaNet.FilesTransfer;
 using GaiaNet.HolePunching;
 using System.Collections.Generic;
 
@@ -54,11 +55,7 @@ namespace GaiaNet.BasicNet
                             // new Thread(()=> new CommandHandler().handle(newClient)).Start();
                             break;
                         case NetType.File:
-                            //fileheader fileheader = new fileheader();
-                            //fileheader.receive(dis);
-                            //logserver.info("file from: "+socket.getremotesocketaddress()+ " file name: "+fileheader.name+" type: "+fileheader.type);
-                            //if (fileheader.type == 0)  createfile(socket,dis,fileheader);
-                            //if (fileHeader.type == 1)  new Thread(()-> threadRcvFile(socket,dis,fileHeader)).start();
+                            new Thread( ()=>new RecvFiles(newClient).Recv() ).Start();
                             break;
                         case NetType.GaiaNet:
                             //new Thread(()-> this.gaiaNet.net.handle(socket, logServer)).start();

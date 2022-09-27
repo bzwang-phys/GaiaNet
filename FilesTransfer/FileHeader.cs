@@ -4,28 +4,29 @@ using System.Linq;
 using System.Text;
 
 /*FileHeader Byte Struct:
-+------+-------+-------+-------+------------+-------------+
-| size | start |  end  | index |  len(int)  |    name     |
-+------+-------+-------+-------+------------+-------------+
-|   8  |   8   |   8   |   8   |      4     |    len      |
-+------+-------+-------+-------+------------+-------------+
++------+------+-------+-------+-------+------------+-------------+
+|  op  | size | start |  end  | index |  len(int)  |    name     |
++------+------+-------+-------+-------+------------+-------------+
+|   1  |   8  |   8   |   8   |   8   |      4     |    len      |
++------+------+-------+-------+-------+------------+-------------+
 
-size:    long
-start:   long
-end:     long
-index:   long
-LEN:     int
-Name:    len
+op:      byte(1)
+size:    long(8)
+start:   long(8)
+end:     long(8)
+index:   long(8)
+LEN:     int(4)
+Name:    string(len)
 */
 
 
 namespace GaiaNet.FilesTransfer
 {
     public enum TransferType {LOCAL, NET};
-    public enum  {LOCAL, NET};
+    public enum FileOperator:byte {REQUEST, TRANSFER, CHECKMD5};
     public class FileHeader
     {
-        public byte type; // 0x01 : request, 0x02:transfer.
+        public FileOperator op;
         public string name;
         public long size;
         public long start;
@@ -33,22 +34,25 @@ namespace GaiaNet.FilesTransfer
         public long index;
         public string destPath;
 
-        public FileHeader(byte type, string name, long size){
+        public FileHeader(FileOperator op, byte type, string name, long size){
+            this.op = op;
             this.name = name;
             this.size = size;
             this.start = 0L;
             this.end = 0L;
             this.index = 0L;
         }
-        public FileHeader(string name, long start, long end, long index){
-        this.name = name;
-        this.size = 0L;
-        this.start = start;
-        this.end = end;
-        this.index = index;
+        public FileHeader(FileOperator op, string name, long start, long end, long index){
+            this.op = op;
+            this.name = name;
+            this.size = 0L;
+            this.start = start;
+            this.end = end;
+            this.index = index;
         }
 
         public FileHeader(){
+            this.op = FileOperator.REQUEST;
             this.name = "";
             this.size = 0L;
             this.start = 0L;
@@ -69,17 +73,21 @@ namespace GaiaNet.FilesTransfer
 
         public byte[] ToBytes()
         {try{
-            byte[] byts = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.size));
-            byte[] startByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.start));
-            byte[] endByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.end));
-            byte[] indexByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.index));
+            byte[] byts = new byte[] {(byte)this.op};
             byte[] nameByte = Encoding.UTF8.GetBytes(this.name);
             int nameLen = nameByte.Length;
-            byte[] lenByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(nameLen));
 
-            byts = byts.Concat(startByte).Concat(endByte).Concat(indexByte).Concat(lenByte).Concat(nameByte).ToArray();
+            byts = byts.Concat(Int2Byte(size)).Concat(Int2Byte(start)).Concat(Int2Byte(end))
+                   .Concat(Int2Byte(index)).Concat(Int2Byte(nameLen)).Concat(nameByte).ToArray();
             return byts;
         } catch (System.Exception){ return null;}
+        }
+
+        private byte[] Int2Byte(int i){
+            return BitConverter.GetBytes(IPAddress.HostToNetworkOrder(i));
+        }
+        private byte[] Int2Byte(long l){
+            return BitConverter.GetBytes(IPAddress.HostToNetworkOrder(l));
         }
     }
 }

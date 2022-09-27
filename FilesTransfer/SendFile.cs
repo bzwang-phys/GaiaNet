@@ -90,9 +90,9 @@ namespace GaiaNet.FilesTransfer
                 }
                 pi.index = start;
                 pi.sum = fsg.size;
-                int progress = (int) Math.floor(100.0*start/fsg.size);
+                int progress = (int) Math.Floor(100.0*start/fsg.size);
                 System.Console.WriteLine("progress: " + progress + "%");
-                Thread.sleep(2000);
+                Thread.Sleep(2000);
                 if (progress >= 100){ break; }
             }
             } catch (Exception) {
@@ -116,7 +116,7 @@ namespace GaiaNet.FilesTransfer
             }
             try {
             TcpClient sendClient = new TcpClient(ip, port);
-            FileHeader fileHeader = new FileHeader(nti.fileName,
+            FileHeader fileHeader = new FileHeader(FileOperator.TRANSFER, nti.fileName,
                     nti.start, nti.end, nti.index);
             byte[] dataSend = (new byte[] {(byte)NetType.File}).Concat(fileHeader.ToBytes()).ToArray();
             sendClient.Client.Send(dataSend);

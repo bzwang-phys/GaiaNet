@@ -22,7 +22,6 @@ namespace GaiaNet.Relay
     private Boolean isEndPoint = false;
     private Boolean isPrint = true;
     private RelayHeader relayHeader = null;
-    private int count = 0;
 
     private static readonly log4net.ILog log = log4net.LogManager.GetLogger(
       System.Reflection.MethodBase.GetCurrentMethod().ReflectedType);
@@ -83,20 +82,14 @@ namespace GaiaNet.Relay
       inSocket.BeginReceive(upByts, 0, upByts.Length, SocketFlags.None, asyncRes=>{try{
         // every asyn need a try/catch
         upBytsNum = inSocket.EndReceive(asyncRes);
-        if (upBytsNum == 0){ // Close the Relay.
-          count += 1;
-          System.Threading.Thread.Sleep(2000);
-          if (count > 20)
-          {
-            StopRelay("Up");
-          CloseSocket();
-          }
-        }
-        if (!upStreamOpen || !downStreamOpen){ // Close the Relay.
-          StopRelay("Up");
+        if (upBytsNum == 0 || !upStreamOpen || !downStreamOpen){ // Close the Relay.
+          if (upBytsNum == 0){ log.Info(String.Format("Channel Id={0}, FromSocket closed and get 0 data",
+            this.relayHeader.Id)); }
+          StopRelay();
           CloseSocket();
           return;
         }
+
         if (isPrint) {
           System.Console.WriteLine("====================UpStream===============================");
           System.Console.WriteLine("Channel Id:" + this.relayHeader.Id);
@@ -105,10 +98,10 @@ namespace GaiaNet.Relay
         outSocket.Client.BeginSend(InByts(), 0, InByts().Length, SocketFlags.None, asyncRes1=>{try{
           outSocket.Client.EndSend(asyncRes1);
           UpStream();
-          }catch (System.Exception){log.Error("outSocket send failed"); StopRelay("Up1"); CloseSocket(); }
+          }catch (System.Exception){log.Error("outSocket send failed"); StopRelay(); CloseSocket(); }
         }, null);
         }catch (System.Exception){log.Error("inSocket receive and outSocket send failed ");
-            StopRelay("Up2"); CloseSocket(); }
+            StopRelay(); CloseSocket(); }
       }, null);
 
     }
@@ -118,17 +111,10 @@ namespace GaiaNet.Relay
     private void DownStream(){
       outSocket.Client.BeginReceive(downByts, 0, downByts.Length, SocketFlags.None, asyncRes=>{try{
         downBytsNum = outSocket.Client.EndReceive(asyncRes);
-        if (downBytsNum == 0){ // Close the Relay.
-          System.Threading.Thread.Sleep(2000);
-          count += 1;
-          if (count > 20)
-          {
-            StopRelay("Down0");
-          CloseSocket();
-          }
-        }
-        if (!upStreamOpen || !downStreamOpen){  // Close the Relay.
-          StopRelay("Down");
+        if (downBytsNum == 0 || !upStreamOpen || !downStreamOpen){  // Close the Relay.
+          if (downBytsNum == 0){log.Info(String.Format("Channel Id={0}, ToSocket closed and get 0 data",
+            this.relayHeader.Id)); }
+          StopRelay();
           CloseSocket();
           return;
         }
@@ -140,23 +126,22 @@ namespace GaiaNet.Relay
         inSocket.BeginSend(OutByts(), 0, OutByts().Length, SocketFlags.None, asyncRes1=>{try{
           inSocket.EndSend(asyncRes1);
           DownStream();
-          }catch (System.Exception){log.Error("inSocket send failed");StopRelay("Down1"); CloseSocket(); }
+          }catch (System.Exception){log.Error("inSocket send failed");StopRelay(); CloseSocket(); }
         }, null);
         }catch (System.Exception){ log.Error("outSocket receive and inSocket send failed");
-            StopRelay("Down2"); CloseSocket(); }
+            StopRelay(); CloseSocket(); }
       }, null);
     }
 
     private void StopRelay(){StopRelay(" ");}
     private void StopRelay(string msg){
-      System.Console.WriteLine("Channel Id={0} is Stoping with message: {1}", this.relayHeader.Id, msg);
+    //   System.Console.WriteLine("Channel Id={0} is Stoping with message: {1}", this.relayHeader.Id, msg);
       upStreamOpen = false;
       downStreamOpen = false;
     }
     private void CloseSocket(){
       closeSockNum += 1;
       if (closeSockNum > 1){ //Only work when this is called by both DownStream() and UpStream().
-        System.Console.WriteLine("Channel Id=" + this.relayHeader.Id + " is Closing two sockets");
         inSocket.Close();
         outSocket.Close();
       }

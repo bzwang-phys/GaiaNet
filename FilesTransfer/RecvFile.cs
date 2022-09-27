@@ -1,11 +1,17 @@
 using System;
 using System.IO;
-using System.Net;
+using System.Net.Sockets;
 
 namespace GaiaNet.FilesTransfer
 {
     public class RecvFiles
     {
+        public RecvFiles(Socket soclet){
+
+        }
+        public void Recv(){
+
+        }
         //  used to receive files. first read the [name,star,end], then write in file.
         private void threadRcvFile(Socket socket, DataInputStream dis, FileHeader fileHeader) {
             int len;
