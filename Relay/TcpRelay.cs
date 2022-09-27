@@ -20,7 +20,9 @@ namespace GaiaNet.Relay
 
     private Boolean isStartPoint = false;
     private Boolean isEndPoint = false;
+    private Boolean isPrint = true;
     private RelayHeader relayHeader = null;
+    private int count = 0;
 
     private static readonly log4net.ILog log = log4net.LogManager.GetLogger(
       System.Reflection.MethodBase.GetCurrentMethod().ReflectedType);
@@ -66,11 +68,13 @@ namespace GaiaNet.Relay
           } else {
             if (iPEndPoint.Port == 443){  //https
               inSocket.Send(Encoding.ASCII.GetBytes("HTTP/1.1 200 Connection Established\r\n\r\n"));
-            } else{ outSocket.Client.Send(InByts()); } // http and others.
+            } else{   // http and others.
+              outSocket.Client.Send(InByts()); 
+            }
           }
           UpStream();
           DownStream();
-        } catch (System.Exception) { StopRelay(); CloseSocket(); }
+        } catch (System.Exception) { StopRelay("AsyncRelay"); CloseSocket(); }
       }, null);
     }
 
@@ -79,19 +83,32 @@ namespace GaiaNet.Relay
       inSocket.BeginReceive(upByts, 0, upByts.Length, SocketFlags.None, asyncRes=>{try{
         // every asyn need a try/catch
         upBytsNum = inSocket.EndReceive(asyncRes);
-        if (upBytsNum == 0 || !upStreamOpen || !downStreamOpen){ // Close the Relay.
-          StopRelay();
+        if (upBytsNum == 0){ // Close the Relay.
+          count += 1;
+          System.Threading.Thread.Sleep(2000);
+          if (count > 20)
+          {
+            StopRelay("Up");
+          CloseSocket();
+          }
+        }
+        if (!upStreamOpen || !downStreamOpen){ // Close the Relay.
+          StopRelay("Up");
           CloseSocket();
           return;
         }
-        // System.Console.WriteLine(Encoding.UTF8.GetString(InByts()));
+        if (isPrint) {
+          System.Console.WriteLine("====================UpStream===============================");
+          System.Console.WriteLine("Channel Id:" + this.relayHeader.Id);
+          System.Console.WriteLine(Encoding.ASCII.GetString(InByts()));
+        }
         outSocket.Client.BeginSend(InByts(), 0, InByts().Length, SocketFlags.None, asyncRes1=>{try{
           outSocket.Client.EndSend(asyncRes1);
           UpStream();
-          }catch (System.Exception){log.Error("outSocket send failed"); StopRelay(); CloseSocket(); }
+          }catch (System.Exception){log.Error("outSocket send failed"); StopRelay("Up1"); CloseSocket(); }
         }, null);
         }catch (System.Exception){log.Error("inSocket receive and outSocket send failed ");
-            StopRelay(); CloseSocket(); }
+            StopRelay("Up2"); CloseSocket(); }
       }, null);
 
     }
@@ -101,30 +118,45 @@ namespace GaiaNet.Relay
     private void DownStream(){
       outSocket.Client.BeginReceive(downByts, 0, downByts.Length, SocketFlags.None, asyncRes=>{try{
         downBytsNum = outSocket.Client.EndReceive(asyncRes);
-        if (downBytsNum == 0 || !upStreamOpen || !downStreamOpen){  // Close the Relay.
-          StopRelay();
+        if (downBytsNum == 0){ // Close the Relay.
+          System.Threading.Thread.Sleep(2000);
+          count += 1;
+          if (count > 20)
+          {
+            StopRelay("Down0");
+          CloseSocket();
+          }
+        }
+        if (!upStreamOpen || !downStreamOpen){  // Close the Relay.
+          StopRelay("Down");
           CloseSocket();
           return;
         }
-        // System.Console.WriteLine("DownStream");
-        // System.Console.WriteLine(Encoding.UTF8.GetString(OutByts()));
+        if (isPrint) {
+          System.Console.WriteLine("====================DownStream===============================");
+          System.Console.WriteLine("Channel Id:" + this.relayHeader.Id);
+          System.Console.WriteLine(Encoding.ASCII.GetString(OutByts()));  
+        }
         inSocket.BeginSend(OutByts(), 0, OutByts().Length, SocketFlags.None, asyncRes1=>{try{
           inSocket.EndSend(asyncRes1);
           DownStream();
-          }catch (System.Exception){log.Error("inSocket send failed");StopRelay(); CloseSocket(); }
+          }catch (System.Exception){log.Error("inSocket send failed");StopRelay("Down1"); CloseSocket(); }
         }, null);
         }catch (System.Exception){ log.Error("outSocket receive and inSocket send failed");
-            StopRelay(); CloseSocket(); }
+            StopRelay("Down2"); CloseSocket(); }
       }, null);
     }
 
-    private void StopRelay(){
+    private void StopRelay(){StopRelay(" ");}
+    private void StopRelay(string msg){
+      System.Console.WriteLine("Channel Id={0} is Stoping with message: {1}", this.relayHeader.Id, msg);
       upStreamOpen = false;
       downStreamOpen = false;
     }
     private void CloseSocket(){
       closeSockNum += 1;
       if (closeSockNum > 1){ //Only work when this is called by both DownStream() and UpStream().
+        System.Console.WriteLine("Channel Id=" + this.relayHeader.Id + " is Closing two sockets");
         inSocket.Close();
         outSocket.Close();
       }
@@ -134,10 +166,10 @@ namespace GaiaNet.Relay
     private IPEndPoint GetIPFromHeader(){
       try {
         upBytsNum = inSocket.Receive(upByts);
-        System.Console.WriteLine(upBytsNum);
         string headers = Encoding.UTF8.GetString(upByts.Take(upBytsNum).ToArray());  //Maybe not the UTF8 code.
-
-        System.Console.WriteLine("headers: " + headers);
+        if (headers.Contains("journals.aps.org")){ isPrint = true; }
+        if (headers.Contains("arxiv.org")){ isPrint = true; }
+        
         // find the host name from the headers.
         char[] delimiterChars = {' ', '\n'};
         string[] headersSplit = headers.Split(delimiterChars);
@@ -154,7 +186,7 @@ namespace GaiaNet.Relay
             break;
           }
         };
-        log.Info("Host: " + host);
+        log.Info("Host: " + host  + ", port=" + port);
 
         // get ip from the hostname with the DNS query.
         IPAddress[] iPAddresses = Dns.GetHostAddresses(host);

@@ -1,24 +1,46 @@
+using System;
+using System.Net;
+using System.Linq;
+using System.Text;
+
+/*FileHeader Byte Struct:
++------+-------+-------+-------+------------+-------------+
+| size | start |  end  | index |  len(int)  |    name     |
++------+-------+-------+-------+------------+-------------+
+|   8  |   8   |   8   |   8   |      4     |    len      |
++------+-------+-------+-------+------------+-------------+
+
+size:    long
+start:   long
+end:     long
+index:   long
+LEN:     int
+Name:    len
+*/
+
+
 namespace GaiaNet.FilesTransfer
 {
+    public enum TransferType {LOCAL, NET};
+    public enum  {LOCAL, NET};
     public class FileHeader
     {
-        public int type; // 0: create file or communication. 1:thread to transfer file.
+        public byte type; // 0x01 : request, 0x02:transfer.
         public string name;
         public long size;
         public long start;
         public long end;
         public long index;
+        public string destPath;
 
-        public FileHeader(int type, string name, long size){
-            this.type = type;
+        public FileHeader(byte type, string name, long size){
             this.name = name;
             this.size = size;
             this.start = 0L;
             this.end = 0L;
             this.index = 0L;
         }
-        public FileHeader(int type, string name, long start, long end, long index){
-        this.type = type;
+        public FileHeader(string name, long start, long end, long index){
         this.name = name;
         this.size = 0L;
         this.start = start;
@@ -27,7 +49,6 @@ namespace GaiaNet.FilesTransfer
         }
 
         public FileHeader(){
-            this.type = 0;
             this.name = "";
             this.size = 0L;
             this.start = 0L;
@@ -35,22 +56,30 @@ namespace GaiaNet.FilesTransfer
             this.index = 0L;
         }
         
-        // public void send(DataOutputStream dosSocket) throws IOException {
-        //     dosSocket.writeInt(this.type);
-        //     dosSocket.writeUTF(this.name);
-        //     dosSocket.writeLong(this.size);
-        //     dosSocket.writeLong(this.start);
-        //     dosSocket.writeLong(this.end);
-        //     dosSocket.writeLong(this.index);
-        // }
+        public FileHeader FromBytes(byte[] byts)
+        {
+            if (byts == null){ return null;}
+            FileHeader header = new FileHeader();
+            // header.Type = (RelayType)byts[0];
+            // header.Id = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(byts[1..5]));
+            // header.Len = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(byts[5..9]));
+            // header.Name = Encoding.UTF8.GetString(byts[9..^0]);
+            return header;
+        }
 
-        // public void receive(DataInputStream disSocket){
-        //     this.type = disSocket.readInt();
-        //     this.name = disSocket.readUTF();
-        //     this.size = disSocket.readLong();
-        //     this.start = disSocket.readLong();
-        //     this.end = disSocket.readLong();
-        //     this.index = disSocket.readLong();
-        // }
+        public byte[] ToBytes()
+        {try{
+            byte[] byts = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.size));
+            byte[] startByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.start));
+            byte[] endByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.end));
+            byte[] indexByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(this.index));
+            byte[] nameByte = Encoding.UTF8.GetBytes(this.name);
+            int nameLen = nameByte.Length;
+            byte[] lenByte = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(nameLen));
+
+            byts = byts.Concat(startByte).Concat(endByte).Concat(indexByte).Concat(lenByte).Concat(nameByte).ToArray();
+            return byts;
+        } catch (System.Exception){ return null;}
+        }
     }
 }
