@@ -1,11 +1,8 @@
 ﻿using System;
-using GaiaNet.BasicNet;
-using GaiaNet.GaiaNets;
-using GaiaNet.Command;
 using CommandLine;
-using System.Net;
-using System.Linq;
+using GaiaNet.BasicNet;
 
+[assembly: log4net.Config.XmlConfigurator(ConfigFile = "./config/log4net.conf")]
 namespace GaiaNet
 {
     public class MainOptions{
@@ -17,9 +14,9 @@ namespace GaiaNet
     }
 
 
-
     class Program
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().ReflectedType);
         static void Main(string[] args)
         {
             MainOptions mainOptions = null;
@@ -29,8 +26,6 @@ namespace GaiaNet
             if (type == null)
                 type = "shell";
             DaemonServer nt = new DaemonServer(type);
-
-            
         }
     }
 }

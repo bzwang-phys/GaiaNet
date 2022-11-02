@@ -1,20 +1,19 @@
 ﻿using GaiaNet.Command;
 using GaiaNet.GaiaNets;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using GaiaNet.Relay;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace GaiaNet.BasicNet
 {
     class DaemonServer
     {
-        private int _portServer = 9091;
+        private int _portServer;
+        private int _portRelay;
         private MultiThreadServer server = null;
         private UdpServer udpServer = null;
         private Net net = null;
+        private LocalRelayListener relayListener = null;
 
         /*
         * Prepare a server listening on portServer,
@@ -25,15 +24,19 @@ namespace GaiaNet.BasicNet
             if ("server".Equals(type))
             {
                 this.net = new Net();
+                this._portServer = Config.serverPort;
+                this._portRelay = this._portServer + 1;
                 this.server = new MultiThreadServer(_portServer, this.net);
                 this.udpServer = new UdpServer(_portServer);
-                new Thread(udpServer.run).Start();
-                server.serverRun();
+                this.relayListener = new LocalRelayListener(_portRelay);
+                new Thread(this.udpServer.run).Start();
+                new Thread(this.relayListener.serverRun).Start();
+                this.server.serverRun();
             }
             else if ("shell".Equals(type))
             {
                 this.net = new Net();
-                CommandHandler commandHandler = new CommandHandler();
+                CommandHandler commandHandler = new CommandHandler(_portServer);
                 commandHandler.getCmdFromKey();
             }
             else if ("test".Equals(type))

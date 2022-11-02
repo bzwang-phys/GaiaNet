@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Net;
+using GaiaNet.GaiaNets;
 using System.Net.Sockets;
 using System.IO;
 using CommandLine;
@@ -13,34 +13,20 @@ namespace GaiaNet.Command
     class CommandHandler
     {
         private TcpClient sock;
-        private int _port = 12000;
+        private int _port;
 
-        private List<string> cmdStrToList(string cmdStr){
-            //convert a command string to a standard CommandTo list.
-            string cmdstrn = new System.Text.RegularExpressions.Regex("[\\s]+").Replace(cmdStr, " ");
-            List<string> cmdList = new List<string>();
-            List<string> cmdTem = new List<string>();
-            String[] cmdArray = cmdstrn.Split(" ");
-            for (int i = 0; i < cmdArray.Length; i++){
-                if ("--to"==cmdArray[i]){    //do not use shortname, because it's easy to confuse with cmdstr.
-                    cmdList.Add(cmdArray[i]);
-                    cmdList.Add(cmdArray[i+1]);
-                    i = i + 1;
-                }else if ("--udp"==cmdArray[i]){
-                    cmdList.Add(cmdArray[i]);
-                }else{
-                    cmdTem.Add(cmdArray[i]);
-                }
-            }
-            cmdList.Insert(0, string.Join(" ", cmdTem) ); //Command string should be inserted at position 0.
-            return cmdList;
+        public CommandHandler(int port){
+            this._port = port;
+        }
+        public CommandHandler(){
+            this._port = Config.serverPort;
         }
 
 
         public int sendCmd(String cmd)
         {
             try{
-                List<string> cmdList = cmdStrToList(cmd);
+                string[] cmdList = cmd.Split(null);
                 CommandTo cmdto = null;
                 Parser.Default.ParseArguments<CommandTo>(cmdList).WithParsed<CommandTo>(o=>{ cmdto = o; });
 

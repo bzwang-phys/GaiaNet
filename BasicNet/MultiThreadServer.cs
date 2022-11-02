@@ -7,6 +7,7 @@ using System.Threading;
 using GaiaNet.Command;
 using System.Text;
 using GaiaNet.Relay;
+using GaiaNet.FilesTransfer;
 using GaiaNet.HolePunching;
 using System.Collections.Generic;
 
@@ -14,14 +15,14 @@ namespace GaiaNet.BasicNet
 {
     public class MultiThreadServer
     {
-        // private static const Logger logServer = Logger.getLogger( MultiThreadServer.class.getName() );
-        // public FileHandler fileHandler;  // For log file.
         public Net gaiaNet = null;
         private int _port;
         public String BasePath { get; set; }
         private TcpListener _server;
         private Boolean _isRunning;
         private Dictionary<string, Socket> reverseProxys = new Dictionary<string, Socket>();
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(
+            System.Reflection.MethodBase.GetCurrentMethod().ReflectedType);
 
         public MultiThreadServer(int port):this(port, null) {
             _port = port;
@@ -34,44 +35,47 @@ namespace GaiaNet.BasicNet
                 BasePath = Directory.GetCurrentDirectory();
                 _isRunning = true;
             }
-            catch (IOException e){
-                Console.WriteLine(e);
-            }
+            catch (IOException e){ log.Error(e); }
             gaiaNet = net;
         }
 
         public void serverRun(){
             _server.Start();
+            log.Info(String.Format("MultiThreadServer has started at: {0}", _port));
+            
             while (_isRunning){
                 try {
                     Socket newClient = _server.AcceptSocket();
-                    Console.WriteLine("Connection from: " + newClient.RemoteEndPoint);
-                    
-                    // NetType type = NetType.Relay;
                     NetType type = new NetHeader().ReadHeader(newClient);
-                    Console.WriteLine("GaiaType from this connection: " + type.ToString());
+                    log.Info(String.Format("Connection: {0} with GaiaType {1}",newClient.RemoteEndPoint,type.ToString()));
 
-                    if (type == NetType.Command){
-                        new Thread(()=> new CommandHandler().handle(newClient)).Start();
-                    } else if (type == NetType.File){  // file transfer
-                        //fileheader fileheader = new fileheader();
-                        //fileheader.receive(dis);
-                        //logserver.info("file from: "+socket.getremotesocketaddress()+ " file name: "+fileheader.name+" type: "+fileheader.type);
-                        //if (fileheader.type == 0)  createfile(socket,dis,fileheader);
-                        //if (fileHeader.type == 1)  new Thread(()-> threadRcvFile(socket,dis,fileHeader)).start();
-                    } else if (type == NetType.GaiaNet){
-                        //new Thread(()-> this.gaiaNet.net.handle(socket, logServer)).start();
-                    } else if (type == NetType.Relay){
-                        new Thread( ()=>new TcpRelay(newClient).Relay() ).Start();
-                    } else if (type == NetType.HolePunch) {
-                        new Thread( ()=>new TcpPunchServer().handle(newClient) ).Start();
-                    } else if (type == NetType.ReverseProxy) {
-                        new Thread( ()=>new ReverseProxy(reverseProxys).handle(newClient) ).Start();
-                    } else {
-                        Console.WriteLine("MultiThreadServer: Unknown Socket.");
+                    switch (type)
+                    {
+                        case NetType.Command:
+                            // new Thread(()=> new CommandHandler().handle(newClient)).Start();
+                            break;
+                        case NetType.File:
+                            new Thread( ()=>new RecvFiles(newClient).Recv() ).Start();
+                            break;
+                        case NetType.GaiaNet:
+                            //new Thread(()-> this.gaiaNet.net.handle(socket, logServer)).start();
+                            break;
+                        case NetType.Relay:
+                            new Thread( ()=>new TcpRelay(newClient).Relay() ).Start();
+                            break;
+                        case NetType.HolePunch:
+                            // new Thread( ()=>new TcpPunchServer().handle(newClient) ).Start();
+                            break;
+                        case NetType.ReverseProxy:
+                            // new Thread( ()=>new ReverseProxy(reverseProxys).handle(newClient) ).Start();
+                            break;
+                        default:
+                            log.Info("MultiThreadServer: Unknown Socket.");
+                            break;
                     }
+
                 } catch (IOException e) {
-                    Console.WriteLine(e);
+                    log.Error(e);
                 }
 
             }
@@ -80,9 +84,7 @@ namespace GaiaNet.BasicNet
         public void stop() {
             try {
                 _server.Stop();
-            } catch (IOException e) {
-                Console.WriteLine(e);
-            }
+            } catch (IOException e) { log.Error(e); }
         }
 
         // Just print out the stream with hex string

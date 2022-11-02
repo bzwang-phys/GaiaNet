@@ -10,15 +10,15 @@ namespace GaiaNet.BasicNet
     class UdpServer
     {
         private int _port;
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(
+            System.Reflection.MethodBase.GetCurrentMethod().ReflectedType);
 
         public UdpServer(int port)
         {
             _port = port;
             try{
             }
-            catch (IOException e){
-                Console.WriteLine(e);
-            }
+            catch (IOException e){ log.Error(e); }
         }
 
         private void writeFile(String s)
@@ -44,9 +44,7 @@ namespace GaiaNet.BasicNet
                     //writeFile("From: " + clientInfo + "  Data: " + dataReceive + System.lineSeparator());
                 //}
             }
-            catch (Exception e){
-                Console.WriteLine(e);
-            }
+            catch (Exception e) { log.Error(e); }
 
         }
 }

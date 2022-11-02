@@ -1,12 +1,11 @@
 using System;
 using System.IO;
 
-namespace GaiaNet.Common
+namespace GaiaNet.FilesTransfer
 {
     public class FileSegment
     {
-        public enum Flag {LOCAL, NET}
-        public Flag flag {get;set;}
+        private TransferType flag;
         private const long LOCAL_BLOCK = 10L * 1024L * 1024L;      // 10M
         //    private final long LOCAL_MAX_BLOCK =  150L * 1024L * 1024L;   // 150 M
         //    private final long LOCAL_MAX_SIZE =  4L * 1024L * 1024L * 1024L;   // 4G
@@ -20,15 +19,15 @@ namespace GaiaNet.Common
         public long blockNum {get;set;}
         public long threadNum {get;set;}
         
-        public FileSegment(String fn, Flag flag){
+        public FileSegment(String fn, TransferType flag){
             this.fileName = fn;
             this.flag = flag;
             this.size = getFileSize(fn);
             this.threadNum = 20;
 
-            if (flag == Flag.NET){
+            if (flag == TransferType.NET){
                 segmentNet();
-            }else if (flag == Flag.LOCAL){
+            }else if (flag == TransferType.LOCAL){
                 segmentLocal();
             }
         }
