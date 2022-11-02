@@ -21,6 +21,7 @@ namespace GaiaNet.Relay
     private Boolean isStartPoint = false;
     private Boolean isEndPoint = false;
     private Boolean isPrint = true;
+
     private RelayHeader relayHeader = null;
 
     private static readonly log4net.ILog log = log4net.LogManager.GetLogger(
@@ -67,13 +68,11 @@ namespace GaiaNet.Relay
           } else {
             if (iPEndPoint.Port == 443){  //https
               inSocket.Send(Encoding.ASCII.GetBytes("HTTP/1.1 200 Connection Established\r\n\r\n"));
-            } else{   // http and others.
-              outSocket.Client.Send(InByts()); 
-            }
+            } else{ outSocket.Client.Send(InByts()); } // http and others.
           }
           UpStream();
           DownStream();
-        } catch (System.Exception) { StopRelay("AsyncRelay"); CloseSocket(); }
+        } catch (System.Exception) { StopRelay(); CloseSocket(); }
       }, null);
     }
 
@@ -95,6 +94,7 @@ namespace GaiaNet.Relay
           System.Console.WriteLine("Channel Id:" + this.relayHeader.Id);
           System.Console.WriteLine(Encoding.ASCII.GetString(InByts()));
         }
+
         outSocket.Client.BeginSend(InByts(), 0, InByts().Length, SocketFlags.None, asyncRes1=>{try{
           outSocket.Client.EndSend(asyncRes1);
           UpStream();
@@ -114,6 +114,7 @@ namespace GaiaNet.Relay
         if (downBytsNum == 0 || !upStreamOpen || !downStreamOpen){  // Close the Relay.
           if (downBytsNum == 0){log.Info(String.Format("Channel Id={0}, ToSocket closed and get 0 data",
             this.relayHeader.Id)); }
+
           StopRelay();
           CloseSocket();
           return;
@@ -154,7 +155,7 @@ namespace GaiaNet.Relay
         string headers = Encoding.UTF8.GetString(upByts.Take(upBytsNum).ToArray());  //Maybe not the UTF8 code.
         if (headers.Contains("journals.aps.org")){ isPrint = true; }
         if (headers.Contains("arxiv.org")){ isPrint = true; }
-        
+
         // find the host name from the headers.
         char[] delimiterChars = {' ', '\n'};
         string[] headersSplit = headers.Split(delimiterChars);
