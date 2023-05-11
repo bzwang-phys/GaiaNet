@@ -11,8 +11,8 @@ namespace GaiaNet.GaiaNets
         public int gid;
         public List<String> macArray = new List<string>();
         public String outerIp;
-        public List<IPAddress> ipv4;
-        public List<IPAddress> ipv6;
+        public List<IPAddress> ipv4 = new List<IPAddress>();
+        public List<IPAddress> ipv6 = new List<IPAddress>();
         public String nodeName;
         public String hostName;
         public String osName;
@@ -30,6 +30,7 @@ namespace GaiaNet.GaiaNets
                 this.gid = GetGid();
                 this.nodeName = Config.nodeName;
                 log.Info("Node initialize: " + this.ToString());
+                Console.WriteLine("Node initialize: " + this.ToString());
             } else {
                 BuildFromTxt(s);
             }
@@ -55,6 +56,7 @@ namespace GaiaNet.GaiaNets
                 }
 
             } catch (Exception e) {
+                if (this.macArray == null) macArray = new List<string>();
                 log.Error(e);
             }
         }
@@ -64,10 +66,13 @@ namespace GaiaNet.GaiaNets
                 this.hostName = Dns.GetHostName();
                 IPAddress[] ipaddress = Dns.GetHostAddresses(this.hostName);
                 this.ipv4 = ipaddress.Where(ip => ip.AddressFamily==System.Net.Sockets.AddressFamily.InterNetwork).ToList();
+                
                 this.ipv6 = ipaddress.Where(ip => ip.AddressFamily== System.Net.Sockets.AddressFamily.InterNetworkV6 &&
                                 !ip.IsIPv6LinkLocal).ToList();
             } catch (Exception e) {
                 log.Error(e);
+                if (this.ipv4 == null) this.ipv4 = new List<IPAddress>();
+                if (this.ipv6 == null) this.ipv6 = new List<IPAddress>();
             }
         }
 

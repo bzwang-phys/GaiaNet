@@ -33,6 +33,7 @@ namespace GaiaNet.FilesTransfer
         public long end;
         public long index;
         public string destPath;
+        public Int32 nameLen = 0;
 
         public FileHeader(FileOperator op, byte type, string name, long size){
             this.op = op;
@@ -60,14 +61,16 @@ namespace GaiaNet.FilesTransfer
             this.index = 0L;
         }
         
-        public FileHeader FromBytes(byte[] byts)
+        public static FileHeader FromBytes(byte[] byts)
         {
             if (byts == null){ return null;}
             FileHeader header = new FileHeader();
-            // header.Type = (RelayType)byts[0];
-            // header.Id = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(byts[1..5]));
-            // header.Len = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(byts[5..9]));
-            // header.Name = Encoding.UTF8.GetString(byts[9..^0]);
+            header.op = (FileOperator)byts[0];
+            header.size = IPAddress.NetworkToHostOrder(BitConverter.ToInt64(byts[1..9]));
+            header.start = IPAddress.NetworkToHostOrder(BitConverter.ToInt64(byts[9..17]));
+            header.end = IPAddress.NetworkToHostOrder(BitConverter.ToInt64(byts[17..25]));
+            header.index = IPAddress.NetworkToHostOrder(BitConverter.ToInt64(byts[25..33]));
+            header.nameLen = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(byts[33..37]));
             return header;
         }
 

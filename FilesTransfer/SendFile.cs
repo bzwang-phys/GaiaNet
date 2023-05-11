@@ -58,6 +58,7 @@ namespace GaiaNet.FilesTransfer
         * Use threadPool to send the blocks of the file,
         * the block is described by fs.
         */
+
         public void SendFile(String filePath){
             try {
             if (!File.Exists(filePath)){
@@ -116,10 +117,12 @@ namespace GaiaNet.FilesTransfer
             }
             try {
             TcpClient sendClient = new TcpClient(ip, port);
+            // First send the fileHeader to receiver.
             FileHeader fileHeader = new FileHeader(FileOperator.TRANSFER, nti.fileName,
                     nti.start, nti.end, nti.index);
             byte[] dataSend = (new byte[] {(byte)NetType.File}).Concat(fileHeader.ToBytes()).ToArray();
             sendClient.Client.Send(dataSend);
+            // Then send the files circularly.
             using (FileStream fs = new FileStream(nti.filePath, FileMode.Open, FileAccess.Read)){
                 fs.Seek(start, SeekOrigin.Begin);
                 long blockSize = 500L * 1024;   //500Kb

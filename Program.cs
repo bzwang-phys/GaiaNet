@@ -1,6 +1,7 @@
 ﻿using System;
 using CommandLine;
 using GaiaNet.BasicNet;
+using GaiaNet.Common;
 
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "./config/log4net.conf")]
 namespace GaiaNet
@@ -23,8 +24,7 @@ namespace GaiaNet
             Parser.Default.ParseArguments<MainOptions>(args).WithParsed<MainOptions>(o=>{ mainOptions = o; });
 
             String type = mainOptions.ServerType;
-            if (type == null)
-                type = "shell";
+            if (type == null)  type = "shell";
             DaemonServer nt = new DaemonServer(type);
         }
     }

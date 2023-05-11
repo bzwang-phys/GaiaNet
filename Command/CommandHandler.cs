@@ -1,19 +1,33 @@
 ﻿using System;
 using GaiaNet.GaiaNets;
 using System.Net.Sockets;
-using System.IO;
-using CommandLine;
-using System.Collections.Generic;
+using System.Net;
 using GaiaNet.BasicNet;
+using GaiaNet.Common;
 using System.Text;
 using System.Linq;
 
 namespace GaiaNet.Command
 {
+    class CommandParse
+    {
+        public Boolean udp {get; set;}
+        public IPEndPoint to {get; set;}
+        public String cmdStr {get; set;}
+        public CommandParse()
+        {
+            this.to = new IPEndPoint(IPAddress.Parse("127.0.0.1"), Config.serverPort);
+            this.udp = false;
+        }
+    }
+
+
     class CommandHandler
     {
-        private TcpClient sock;
+        private TcpClient sock = null;
         private int _port;
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(
+            System.Reflection.MethodBase.GetCurrentMethod().ReflectedType);
 
         public CommandHandler(int port){
             this._port = port;
@@ -23,52 +37,67 @@ namespace GaiaNet.Command
         }
 
 
-        public int sendCmd(String cmd)
-        {
-            try{
-                string[] cmdList = cmd.Split(null);
-                CommandTo cmdto = null;
-                Parser.Default.ParseArguments<CommandTo>(cmdList).WithParsed<CommandTo>(o=>{ cmdto = o; });
+        public CommandParse parseCMD(String cmd){
+            CommandParse cmdParse = new CommandParse();
+            string[] cmdList = cmd.Split(null);
 
-                if (cmdto.udp) {udpSendCmd(cmdto); return 0;}
-                this.sock = new TcpClient(cmdto.to, _port);
-                byte[] btysSend = new byte[] {(byte)NetType.Command};
-                this.sock.Client.Send(btysSend);
-                this.sock.Client.Send(Encoding.UTF8.GetBytes(cmdto.cmdStr));
+            if ("to" == cmdList[0]){
+                cmdParse.to = NetTools.ParseIPPort(cmdList[1]);
+                if (cmdParse.to == null) {
+                    System.Console.WriteLine("IP and port can not be parsed correctly");
+                    return null;
+                }
+                cmdParse.cmdStr = string.Join(" ", cmdList[2..^0]);
+            } else if ("udp" == cmdList[0]){
+                cmdParse.udp = true;
+                cmdParse.to = NetTools.ParseIPPort(cmdList[2]);
+                if ("to" != cmdList[1] || cmdParse.to == null) {
+                    Console.WriteLine("Command should be like: udp to 192.168.X.X cmd");
+                    return null;
+                }
+                cmdParse.cmdStr = string.Join(" ", cmdList[3..^0]);
+            } else {
+                cmdParse.cmdStr = cmd.Trim();
+            }
+            return cmdParse;
+        }
 
-                // byte[] btysReceive = new byte[1024];
-                // int resNum = this.sock.Client.Receive(btysReceive);
-                // Console.WriteLine(resNum);
-                return 0; // normal
-            }
-            catch (Exception e){
-                Console.WriteLine("Send Command failed!" + e);
-                return 1;
-            }
+
+        public int sendCMD(CommandParse cmdParse)
+        {try{
+            this.sock = new TcpClient();
+            byte[] btysSend = new byte[] {(byte)NetType.Command};  //tell other side it's the Command package.
+            this.sock.Connect(cmdParse.to);
+            this.sock.Client.Send(btysSend);
+            this.sock.Client.Send( (new NetStringHeader(cmdParse.cmdStr)).bytes );
+
+            String recvString = new NetStringHeader().RecvString(this.sock.Client);
+            Console.WriteLine(recvString);
+            return 0; // normal
+        }
+        catch (Exception e){
+            Console.WriteLine("Send Command failed!" + e);
+            return 1;
+        }
         }
 
 
         public void handle(Socket socket){
             try {
-                Console.WriteLine("Receive command from: " + socket.RemoteEndPoint);
-                byte[] byts = new byte[2048];  // length of command should < 2048.
-                int num = socket.Receive(byts);
-                Console.WriteLine(Encoding.UTF8.GetString(byts.Take(num).ToArray()));
+                System.Console.WriteLine("Receive command from: " + socket.RemoteEndPoint);
+                log.Info("Receive command from: " + socket.RemoteEndPoint);
+                String cmdStr = new NetStringHeader().RecvString(socket);
+                Console.WriteLine(cmdStr);
 
-                // string cmd = sr.ReadLine();
-                // Console.WriteLine(tcpClient);
-                // Console.WriteLine(cmd);
-                // Command command = cmdParse(cmd);
-                // String result = CommandExec.exec(command);
-                // dos.writeUTF(result);
-            } catch (Exception e) {
-                Console.WriteLine(e);
-            }
+                String cmdResult = " " + SystemTools.Execute(cmdStr);
+                socket.Send(new NetStringHeader(cmdResult).bytes);
+                // System.Console.WriteLine("Have Send");
+            } catch (Exception e) { Console.WriteLine(e); }
 
     }
 
 
-        public int udpSendCmd(CommandTo cmd){
+        public int udpSendCmd(){
 //         DatagramSocket ds = new DatagramSocket();
 //         InetAddress serverIp = InetAddress.getByName(cmd.to);
 // //        this.dos.writeInt(GaiaType.Command.ordinal());  // 0 represent Command;
@@ -87,8 +116,10 @@ namespace GaiaNet.Command
                     Console.Write("GaiaNet :> ");
                     cmdstr = Console.ReadLine();
                     cmdstr = cmdstr.Trim();
-                    if (cmdstr.Trim() != string.Empty)
-                        sendCmd(cmdstr.Trim());
+                    if (cmdstr.Trim() != string.Empty){
+                        CommandParse cmdParse = parseCMD(cmdstr.Trim());
+                        sendCMD(cmdParse);
+                    }
                 }
             }
             catch (Exception e){

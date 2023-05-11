@@ -52,7 +52,7 @@ namespace GaiaNet.BasicNet
                     switch (type)
                     {
                         case NetType.Command:
-                            // new Thread(()=> new CommandHandler().handle(newClient)).Start();
+                            new Thread(()=> new CommandHandler().handle(newClient)).Start();
                             break;
                         case NetType.File:
                             new Thread( ()=>new RecvFiles(newClient).Recv() ).Start();
